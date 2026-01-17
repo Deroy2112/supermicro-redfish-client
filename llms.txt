@@ -1,0 +1,132 @@
+# supermicro-redfish-client
+
+> Async Python client library for Supermicro Redfish BMC API. Provides typed dataclass models, session-based authentication with automatic refresh, ETag caching, and comprehensive coverage of standard Redfish and Supermicro OEM endpoints.
+
+## Package Info
+
+- Package name: `aiosupermicro`
+- PyPI: `supermicro-redfish-client`
+- Python: >=3.11
+- Dependencies: aiohttp>=3.8.0
+- License: MIT
+
+## Architecture
+
+The client uses dependency injection for the aiohttp ClientSession (caller owns lifecycle). Authentication uses X-Auth-Token session tokens with automatic refresh at 80% of timeout. All API responses are parsed into frozen dataclasses with `from_dict()` factory methods.
+
+## Client Usage
+
+```python
+from aiohttp import ClientSession
+from aiosupermicro import SupermicroRedfishClient
+
+async with ClientSession() as session:
+    async with SupermicroRedfishClient(
+        session=session,
+        host="192.168.1.100",
+        username="ADMIN",
+        password="ADMIN",
+    ) as client:
+        system = await client.async_get_system()
+        thermal = await client.async_get_thermal()
+```
+
+## Client Methods
+
+Read operations return dataclass models:
+- `async_get_service_root()` → ServiceRoot
+- `async_get_system()` → System
+- `async_get_chassis()` → Chassis
+- `async_get_thermal()` → Thermal (temperatures, fans)
+- `async_get_power()` → Power (consumption, voltages)
+- `async_get_manager()` → Manager (BMC info)
+- `async_get_network_protocol()` → NetworkProtocol
+- `async_get_event_service()` → EventService
+- `async_get_account_service()` → AccountService
+- `async_get_session_service()` → SessionService
+- `async_get_update_service()` → UpdateService
+
+Collection operations return lists:
+- `async_get_processors()` → list[Processor] (CPU details)
+- `async_get_memory()` → list[Memory] (DIMM details)
+- `async_get_pcie_devices()` → list[PCIeDevice]
+- `async_get_system_ethernet_interfaces()` → list[EthernetInterface]
+- `async_get_log_entries(log_service)` → list[LogEntry]
+
+OEM operations (Supermicro-specific):
+- `async_get_fan_mode()` → FanMode
+- `async_get_ntp()` → NTP
+- `async_get_lldp()` → LLDP
+- `async_get_snooping()` → Snooping
+- `async_get_license()` → License
+
+Write operations:
+- `async_set_indicator_led(state)`
+- `async_set_boot_source(target, enabled)`
+- `async_set_fan_mode(mode)`
+- `async_set_ntp_enabled(enabled)`
+- `async_set_ntp_servers(primary, secondary)`
+- `async_set_lldp_enabled(enabled)`
+- `async_system_reset(reset_type)`
+- `async_manager_reset(reset_type)`
+
+Bulk operations (parallel fetch):
+- `async_get_all_data()` → RedfishData
+- `async_get_static_data()` → StaticData (with ETag caching)
+- `async_get_dynamic_data()` → DynamicData
+
+## Enums
+
+All API string values have corresponding StrEnum types:
+- PowerState: On, Off, PoweringOn, PoweringOff
+- Health: OK, Warning, Critical
+- State: Enabled, Disabled, Absent, StandbyOffline, etc.
+- ResetType: On, ForceOff, GracefulShutdown, GracefulRestart, ForceRestart, etc.
+- FanModeType: Standard, FullSpeed, Optimal, HeavyIO
+- BootSource: None, Pxe, Hdd, Cd, Usb, BiosSetup, etc.
+
+## Exceptions
+
+All exceptions inherit from SupermicroRedfishError:
+- AuthenticationError (401)
+- AuthorizationError (403)
+- NotFoundError (404)
+- InvalidRequestError (400)
+- RateLimitError (429)
+- ServiceUnavailableError (503)
+- ConnectionError
+- TimeoutError
+- InvalidResponseError
+
+## Source Files
+
+- [src/aiosupermicro/client.py](src/aiosupermicro/client.py): Main client class with all API methods
+- [src/aiosupermicro/auth.py](src/aiosupermicro/auth.py): Session authentication with token refresh
+- [src/aiosupermicro/const.py](src/aiosupermicro/const.py): API endpoint constants
+- [src/aiosupermicro/exceptions.py](src/aiosupermicro/exceptions.py): Exception hierarchy
+- [src/aiosupermicro/models/](src/aiosupermicro/models/): Dataclass models for API responses
+
+## Model Files
+
+- [models/system.py](src/aiosupermicro/models/system.py): System, Processor, Memory, Boot, ServiceRoot
+- [models/chassis.py](src/aiosupermicro/models/chassis.py): Chassis, PCIeDevice, PhysicalSecurity
+- [models/thermal.py](src/aiosupermicro/models/thermal.py): Thermal, Temperature, Fan
+- [models/power.py](src/aiosupermicro/models/power.py): Power, PowerControl, PowerSupply, Voltage
+- [models/manager.py](src/aiosupermicro/models/manager.py): Manager, NetworkProtocol, EthernetInterface
+- [models/oem.py](src/aiosupermicro/models/oem.py): FanMode, NTP, LLDP, Snooping, License
+- [models/logs.py](src/aiosupermicro/models/logs.py): LogEntry, LogEntryOem
+- [models/enums.py](src/aiosupermicro/models/enums.py): All StrEnum types
+
+## Testing
+
+```bash
+pytest tests/ -v          # Run tests
+mypy src/aiosupermicro --strict  # Type checking
+ruff check src/aiosupermicro     # Linting
+```
+
+## Optional
+
+- [README.md](README.md): Full documentation with examples
+- [pyproject.toml](pyproject.toml): Build configuration and dependencies
+- [tests/](tests/): Unit tests with mocked responses
