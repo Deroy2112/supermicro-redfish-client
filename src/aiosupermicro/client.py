@@ -161,6 +161,9 @@ class StaticData:
     chassis: Chassis
     manager: Manager
     license: License
+    ntp: NTP
+    lldp: LLDP
+    network_protocol: NetworkProtocol
 
 
 @dataclass
@@ -787,6 +790,7 @@ class SupermicroRedfishClient:
         """Fetch static data with ETag caching.
 
         Static data changes rarely (system info, config settings).
+        Includes OEM endpoints (NTP, LLDP) and NetworkProtocol.
 
         Returns:
             StaticData with static endpoint responses
@@ -797,8 +801,11 @@ class SupermicroRedfishClient:
                 self._async_get(ENDPOINT_CHASSIS, use_etag=True),
                 self._async_get(ENDPOINT_MANAGERS, use_etag=True),
                 self._async_get(ENDPOINT_LICENSE_QUERY),
+                self._async_get(ENDPOINT_OEM_NTP),
+                self._async_get(ENDPOINT_OEM_LLDP),
+                self._async_get(ENDPOINT_NETWORK_PROTOCOL),
             ],
-            keys=["system", "chassis", "manager", "license"],
+            keys=["system", "chassis", "manager", "license", "ntp", "lldp", "network_protocol"],
         )
 
         return StaticData(
@@ -806,6 +813,9 @@ class SupermicroRedfishClient:
             chassis=Chassis.from_dict(raw["chassis"]),
             manager=Manager.from_dict(raw["manager"]),
             license=License.from_dict(raw["license"]),
+            ntp=NTP.from_dict(raw["ntp"]),
+            lldp=LLDP.from_dict(raw["lldp"]),
+            network_protocol=NetworkProtocol.from_dict(raw["network_protocol"]),
         )
 
     async def async_get_dynamic_data(self) -> DynamicData:
